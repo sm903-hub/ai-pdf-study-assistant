@@ -1,0 +1,157 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="AI PDF Study Assistant using local AI and semantic search.">
+  <title>AI PDF Study Assistant</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Inter, "Segoe UI", sans-serif;
+      background: #0b1020;
+      color: #eef2ff;
+      line-height: 1.7;
+    }
+    .container { width: min(1050px, 90%); margin: auto; }
+    header { border-bottom: 1px solid #252d45; padding: 22px 0; }
+    nav { display: flex; justify-content: space-between; align-items: center; gap: 15px; }
+    .brand { font-weight: 800; font-size: 1.1rem; }
+    .brand span { color: #60a5fa; }
+    nav a { color: #cbd5e1; text-decoration: none; }
+    .hero { padding: 95px 0 80px; text-align: center; }
+    .pill {
+      display: inline-block; padding: 5px 14px; border-radius: 30px;
+      background: #172554; color: #93c5fd; font-size: .85rem;
+      border: 1px solid #1d4ed8; margin-bottom: 23px;
+    }
+    h1 { font-size: clamp(2.5rem, 7vw, 4.8rem); line-height: 1.1; letter-spacing: -2px; }
+    h1 span {
+      background: linear-gradient(90deg, #60a5fa, #c084fc);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .hero p { max-width: 650px; margin: 24px auto; color: #aab6ce; font-size: 1.08rem; }
+    .button {
+      display: inline-block; padding: 12px 20px; border-radius: 10px;
+      text-decoration: none; font-weight: 700; margin: 5px;
+    }
+    .primary { background: #3b82f6; color: white; }
+    .secondary { border: 1px solid #36415f; color: #e2e8f0; }
+    section { padding: 65px 0; }
+    .heading { text-align: center; margin-bottom: 35px; }
+    .heading h2 { font-size: 2rem; }
+    .heading p { color: #94a3b8; margin-top: 8px; }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+    .card {
+      background: #111a2e; border: 1px solid #26324c;
+      border-radius: 16px; padding: 24px;
+    }
+    .icon { font-size: 1.8rem; margin-bottom: 12px; }
+    .card h3 { margin-bottom: 8px; }
+    .card p, .step p { color: #aab6ce; font-size: .95rem; }
+    .workflow { background: #0f172a; }
+    .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+    .step { text-align: center; padding: 18px 10px; }
+    .number {
+      display: grid; place-items: center; width: 42px; height: 42px;
+      margin: 0 auto 15px; border-radius: 50%; background: #1d4ed8; font-weight: 800;
+    }
+    .tags { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
+    .tag {
+      border: 1px solid #334155; background: #111a2e;
+      color: #cbd5e1; border-radius: 30px; padding: 8px 15px;
+    }
+    footer { border-top: 1px solid #252d45; padding: 25px 0; text-align: center; color: #94a3b8; font-size: .9rem; }
+    @media (max-width: 700px) {
+      .grid { grid-template-columns: 1fr; }
+      .steps { grid-template-columns: repeat(2, 1fr); }
+      .hero { padding: 70px 0; }
+      nav { flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <nav class="container">
+      <a class="brand" href="#home">▣ <span>AI PDF</span> Study Assistant</a>
+      <a href="https://github.com/sm903-hub/ai-pdf-study-assistant">GitHub ↗</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero container" id="home">
+      <span class="pill">✦ A personal AI learning project</span>
+      <h1>Your PDFs.<br><span>Your AI Study Partner.</span></h1>
+      <p>
+        A project to make studying from textbooks and lecture notes easier.
+        Ask questions about your documents, discover relevant passages,
+        and trace answers back to their original pages.
+      </p>
+      <a class="button primary" href="#features">Explore features ↓</a>
+      <a class="button secondary" href="#technology">Technology stack</a>
+    </section>
+
+    <section class="container" id="features">
+      <div class="heading">
+        <h2>Designed for better learning</h2>
+        <p>Features planned for the study assistant.</p>
+      </div>
+      <div class="grid">
+        <article class="card">
+          <div class="icon">📄</div>
+          <h3>PDF Understanding</h3>
+          <p>Extract text from course notes and textbooks to make the content searchable.</p>
+        </article>
+        <article class="card">
+          <div class="icon">🔎</div>
+          <h3>Semantic Search</h3>
+          <p>Find useful passages based on meaning, even when wording differs.</p>
+        </article>
+        <article class="card">
+          <div class="icon">📚</div>
+          <h3>Page References</h3>
+          <p>Show the source document and page number so answers can be checked.</p>
+        </article>
+        <article class="card">
+          <div class="icon">🤖</div>
+          <h3>Local Language Model</h3>
+          <p>Plan to use Ollama to generate answers locally on your computer.</p>
+        </article>
+        <article class="card">
+          <div class="icon">🧠</div>
+          <h3>Study Questions</h3>
+          <p>Ask for explanations and summaries based on the supplied study material.</p>
+        </article>
+        <article class="card">
+          <div class="icon">🔐</div>
+          <h3>Local-first Design</h3>
+          <p>Keep document processing and model inference on your machine once models are installed.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="workflow">
+      <div class="container">
+        <div class="heading"><h2>How it will work</h2><p>From a document to an answer you can verify.</p></div>
+        <div class="steps">
+          <article class="step"><div class="number">1</div><h3>Upload</h3><p>Choose your study PDF.</p></article>
+          <article class="step"><div class="number">2</div><h3>Retrieve</h3><p>Find relevant passages with semantic search.</p></article>
+          <article class="step"><div class="number">3</div><h3>Ask</h3><p>Generate an answer from retrieved context.</p></article>
+          <article class="step"><div class="number">4</div><h3>Verify</h3><p>Check the original page references.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="container" id="technology">
+      <div class="heading"><h2>Technology stack</h2><p>Tools planned for the implementation.</p></div>
+      <div class="tags">
+        <span class="tag">Python</span><span class="tag">Streamlit</span>
+        <span class="tag">PyMuPDF</span><span class="tag">Sentence Transformers</span>
+        <span class="tag">FAISS</span><span class="tag">Ollama</span>
+      </div>
+    </section>
+  </main>
+
+  <footer><div class="container">AI PDF Study Assistant · Student-built project · 2026</div></footer>
+</body>
+</html>
