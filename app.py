@@ -8,178 +8,48 @@ import ollama
 import faiss
 from sentence_transformers import SentenceTransformer
 
-# Update this path if Tesseract is installed elsewhere.
-pytesseract.pytesseract.tesseract_cmd = (
-    r"C:\Program Files\Tesseract-OCR\tesseract.exe"
-)
+pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
-st.set_page_config(
-    page_title="AI PDF Study Assistant",
-    page_icon="📚",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+st.set_page_config(page_title="AI PDF Study Assistant", page_icon="📘", layout="wide", initial_sidebar_state="expanded")
 
-# ---------- Custom UI styling ----------
-st.markdown(
-    """
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap');
-
-    :root {
-        --bg: #07090d;
-        --panel: #111318;
-        --panel-2: #191c23;
-        --line: rgba(240, 244, 255, .16);
-        --muted: #a0a5b0;
-        --text: #f5f5f2;
-        --acid: #d5ff3f;
-        --blue: #94a9ff;
-    }
-
-    html, body, [class*="css"] { font-family: 'Manrope', sans-serif; }
-    .stApp {
-        background:
-          radial-gradient(ellipse at 76% 5%, rgba(213,255,63,.075), transparent 27%),
-          radial-gradient(ellipse at 15% 28%, rgba(103,130,255,.09), transparent 28%),
-          #07090d;
-        color: var(--text);
-    }
-    [data-testid="stHeader"] { background: rgba(7,9,13,.82); }
-    [data-testid="stSidebar"] {
-        background: #0c0e12;
-        border-right: 1px solid var(--line);
-    }
-    [data-testid="stSidebar"] > div:first-child { padding-top: 1.4rem; }
-    .block-container { max-width: 1380px; padding-top: 1.25rem; padding-bottom: 4rem; }
-
-    h1, h2, h3 { font-family: 'Manrope', sans-serif !important; letter-spacing: -.055em; color: #f5f5f2; }
-    .hero {
-        position: relative;
-        overflow: hidden;
-        min-height: 440px;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        padding: clamp(1.4rem, 4vw, 3.5rem);
-        border: 1px solid rgba(255,255,255,.16);
-        border-radius: 5px;
-        background:
-          radial-gradient(ellipse at 70% 45%, rgba(213,255,63,.12), transparent 24%),
-          radial-gradient(ellipse at 70% 45%, rgba(121,143,255,.18), transparent 42%),
-          linear-gradient(135deg, #151820, #0a0b0f 65%);
-        margin-bottom: 1.4rem;
-        isolation: isolate;
-    }
-    .hero:before {
-        content: "";
-        position: absolute;
-        z-index: -1;
-        width: min(52vw, 620px);
-        aspect-ratio: 1;
-        right: -4%;
-        top: -17%;
-        border: 1px solid rgba(213,255,63,.35);
-        border-radius: 43% 57% 63% 37% / 43% 40% 60% 57%;
-        box-shadow:
-          0 0 0 22px rgba(213,255,63,.025),
-          0 0 0 52px rgba(213,255,63,.025),
-          inset 0 0 70px rgba(213,255,63,.06);
-        transform: rotate(-22deg);
-        animation: orbit 18s linear infinite;
-    }
-    .hero:after {
-        content: "";
-        position: absolute;
-        z-index: -1;
-        width: min(35vw, 430px);
-        aspect-ratio: 1;
-        right: 9%;
-        top: 5%;
-        border: 1px solid rgba(154,174,255,.35);
-        border-radius: 50% 50% 40% 60%;
-        box-shadow: inset 0 0 80px rgba(154,174,255,.07), 0 0 90px rgba(154,174,255,.06);
-        animation: orbit 24s linear infinite reverse;
-    }
-    @keyframes orbit { from { transform: rotate(0deg) scale(1); } to { transform: rotate(360deg) scale(1); } }
-
-    .topline {
-        display: flex; justify-content: space-between; gap: 1rem; align-items: center;
-        color: #c4c7cf; font-family: 'DM Mono', monospace; text-transform: uppercase;
-        letter-spacing: .12em; font-size: .72rem;
-    }
-    .status-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--acid); margin-right: .5rem; box-shadow: 0 0 12px rgba(213,255,63,.6); }
-    .hero-title {
-        font-family: 'Manrope', sans-serif;
-        font-size: clamp(2.7rem, 7.4vw, 6.7rem);
-        line-height: .91; letter-spacing: -.085em; font-weight: 800;
-        max-width: 920px; margin: 3.1rem 0 1.2rem; color: #f6f6f2;
-    }
-    .hero-title span { color: var(--acid); }
-    .hero-subtitle { color: #b9bdc7; font-size: clamp(.95rem, 1.5vw, 1.12rem); line-height: 1.7; max-width: 570px; margin: 0; }
-    .hero-bottom {
-        display: flex; align-items: end; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
-        margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--line);
-        color: #a4a8b2; font-family: 'DM Mono', monospace; font-size: .72rem;
-        letter-spacing: .06em; text-transform: uppercase;
-    }
-    .section-heading {
-        font-family: 'DM Mono', monospace; color: var(--acid); font-weight: 500;
-        font-size: .78rem; letter-spacing: .14em; text-transform: uppercase;
-        margin: 2.2rem 0 .65rem;
-    }
-    .muted { color: var(--muted); font-size: .91rem; line-height: 1.7; }
-    .metric-card {
-        background: linear-gradient(140deg, #171a20, #0d0f13);
-        border: 1px solid var(--line); border-radius: 4px; padding: 1.1rem 1.2rem; min-height: 100px;
-    }
-    .metric-label { color: #a0a5b0; font-family: 'DM Mono', monospace; font-size: .7rem; letter-spacing: .12em; }
-    .metric-value { color: #f6f6f2; font-size: 1.9rem; font-weight: 800; letter-spacing: -.06em; margin-top: .3rem; }
-    [data-testid="stFileUploader"] {
-        border: 1px dashed rgba(213,255,63,.45); border-radius: 4px;
-        background: rgba(213,255,63,.025); padding: .65rem;
-    }
-    [data-testid="stFileUploader"] section { border: 0; }
-    .stButton > button {
-        border-radius: 3px; border: 1px solid var(--acid); background: var(--acid);
-        color: #0a0c0e; font-weight: 800; transition: all .18s ease;
-    }
-    .stButton > button:hover { background: #e3ff83; border-color: #e3ff83; color: #07090d; transform: translateY(-1px); }
-    [data-testid="stChatMessage"] {
-        border: 1px solid var(--line); border-radius: 4px; background: rgba(17,19,24,.82);
-        padding: .8rem 1rem; margin-bottom: .8rem;
-    }
-    [data-testid="stChatInput"] { border-color: rgba(213,255,63,.4); border-radius: 4px; background: #111318; }
-    [data-testid="stExpander"] { border: 1px solid var(--line); border-radius: 4px; background: rgba(17,19,24,.5); }
-    div[data-testid="stAlert"] { border-radius: 4px; }
-    .feature-card {
-        height: 100%; min-height: 150px; border: 1px solid var(--line); border-radius: 4px;
-        padding: 1.1rem; background: linear-gradient(145deg, rgba(25,28,35,.9), rgba(10,12,16,.85));
-        transition: transform .2s ease, border-color .2s ease;
-    }
-    .feature-icon { font-size: 1.3rem; margin-bottom: .8rem; filter: grayscale(.2); }
-    .feature-title { color: #f4f4ef; font-weight: 700; margin-bottom: .4rem; }
-    .feature-copy { color: #a0a5b0; font-size: .84rem; line-height: 1.6; }
-    .sidebar-brand { padding: .2rem .1rem 1.1rem; }
-    .sidebar-brand-name { font-family: 'DM Mono', monospace; font-size: .95rem; color: #f5f5f2; font-weight: 500; letter-spacing: .04em; text-transform: uppercase; }
-    .sidebar-caption { color: #9297a2; font-size: .8rem; line-height: 1.6; margin-top: .45rem; }
-    .small-note { color: #9297a2; font-size: .78rem; line-height: 1.6; }
-    footer, #MainMenu { visibility: hidden; }
-
-    @media (max-width: 700px) {
-        .hero { min-height: 390px; }
-        .hero-title { margin-top: 2.4rem; }
-        .hero:before { width: 85vw; right: -25%; top: 10%; }
-        .hero:after { width: 55vw; right: -5%; top: 22%; }
-    }
-    @media (prefers-reduced-motion: reduce) {
-        .hero:before, .hero:after { animation: none; }
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
+st.markdown(r"""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
+:root{--bg:#071426;--panel:#0c1d33;--panel2:#102641;--line:#203b5b;--text:#edf5ff;--muted:#9cb1c9;--accent:#4ea1ff;--accent2:#8bc5ff}
+html,body,[class*="css"]{font-family:'DM Sans',sans-serif;color:var(--text)}
+.stApp{background:radial-gradient(ellipse at 78% 0%,rgba(35,119,214,.20),transparent 32%),linear-gradient(135deg,#061121 0%,#081a30 55%,#071426 100%)}
+[data-testid="stHeader"]{background:rgba(7,20,38,.88)}
+[data-testid="stSidebar"]{background:#08172a;border-right:1px solid var(--line)}
+[data-testid="stSidebar"]>div:first-child{padding-top:1.4rem}
+.block-container{max-width:1240px;padding-top:2rem;padding-bottom:5rem}
+h1,h2,h3{font-family:'Manrope',sans-serif;letter-spacing:-.04em;color:var(--text)}
+h1{font-size:2.1rem!important;font-weight:750!important}
+small,.muted,.stCaption{color:var(--muted)!important}
+.brand-mark{width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#8bc5ff,#2878d0);color:#061426;font-weight:900;font-size:19px;box-shadow:0 5px 24px #2f8fff30}
+.eyebrow{font-size:.72rem;text-transform:uppercase;letter-spacing:.15em;color:#79baff;font-weight:700}
+.hero{border:1px solid #244568;border-radius:22px;padding:30px 32px;background:linear-gradient(120deg,rgba(14,43,75,.98),rgba(9,27,49,.98));position:relative;overflow:hidden;margin-bottom:22px;box-shadow:0 18px 60px rgba(0,0,0,.12)}
+.hero:after{content:'';position:absolute;width:260px;height:260px;border:1px solid #4ea1ff35;border-radius:50%;right:-50px;top:-125px;box-shadow:0 0 0 28px #4ea1ff0d,0 0 0 58px #4ea1ff08;pointer-events:none}
+.hero h1{font-size:clamp(2rem,4vw,3.25rem)!important;line-height:1.06;margin:.55rem 0 .7rem!important;max-width:760px}
+.hero p{color:#b4c9df;max-width:650px;line-height:1.7;margin:0;font-size:1rem}
+.stat{background:linear-gradient(145deg,#0d2037,#0a1a2e);border:1px solid var(--line);border-radius:15px;padding:16px 18px;min-height:90px}
+.stat-label{font-size:.72rem;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}.stat-value{font-size:1.6rem;font-weight:750;letter-spacing:-.04em;margin-top:5px;color:var(--text)}
+.section-title{font-size:1.04rem;font-weight:700;letter-spacing:-.02em;margin:.6rem 0 .2rem}.section-sub{font-size:.86rem;color:var(--muted);margin-bottom:1rem}
+div[data-testid="stFileUploader"]{border:1px dashed #31577d;border-radius:15px;background:#0b1c30;padding:10px}
+div[data-testid="stFileUploaderDropzone"]{background:#0e2340;border:1px dashed #31577d;border-radius:12px}
+.stButton>button{border-radius:11px;border:1px solid #294867;background:#10243b;color:#eaf4ff;font-weight:600;min-height:2.6rem;transition:all .16s ease}
+.stButton>button:hover{border-color:#4ea1ff;background:#153252;color:white;transform:translateY(-1px)}
+.stButton>button[kind="primary"]{background:#4ea1ff;color:#061426;border-color:#4ea1ff}.stButton>button[kind="primary"]:hover{background:#8bc5ff;border-color:#8bc5ff;color:#061426}
+[data-testid="stChatMessage"]{background:rgba(12,29,51,.88);border:1px solid #203b5b;border-radius:16px;padding:1rem 1.1rem;margin-bottom:.8rem}
+[data-testid="stChatInput"]{border:1px solid #294867!important;border-radius:17px!important;background:#0c1d33!important;box-shadow:0 8px 28px #0004}
+[data-testid="stChatInput"]:focus-within{border-color:#4ea1ff!important;box-shadow:0 0 0 1px #4ea1ff40}
+[data-testid="stExpander"]{border:1px solid var(--line);border-radius:13px;background:#0a1a2e}
+[data-testid="stMetric"]{background:var(--panel);padding:12px;border-radius:12px;border:1px solid var(--line)}
+[data-testid="stProgressBar"]>div>div{background:#4ea1ff}
+hr{border-color:var(--line)!important}
+footer,#MainMenu{visibility:hidden}
+@media(max-width:760px){.block-container{padding:1rem .8rem 3rem}.hero{padding:22px 20px}.hero h1{font-size:2rem!important}}
+</style>
+""", unsafe_allow_html=True)
 
 @st.cache_resource
 def load_embedding_model():
@@ -442,187 +312,142 @@ def answer_question(question, results):
     return response["message"]["content"]
 
 
-# ---------- Navigation and page state ----------
-if "current_view" not in st.session_state:
-    st.session_state["current_view"] = "home"
-if "messages" not in st.session_state:
-    st.session_state["messages"] = []
+# ---------- Premium workspace ----------
+if "messages" not in st.session_state: st.session_state.messages = []
+if "show_sources" not in st.session_state: st.session_state.show_sources = True
 
-# Hide Streamlit's default chrome and use a clean, centered workspace.
-st.markdown("""
-<style>
-#MainMenu, footer {visibility: hidden;}
-[data-testid="stHeader"] {background: transparent;}
-.block-container {max-width: 1500px; padding: 1.1rem 2rem 2rem;}
-.stApp {background: #050607;}
-.home-wrap {min-height: calc(100vh - 4rem); display:flex; flex-direction:column;}
-.home-hero {position:relative; isolation:isolate; overflow:hidden; min-height: min(76vh, 760px);
-  display:flex; flex-direction:column; justify-content:space-between; padding: clamp(1.5rem,4vw,3.4rem);
-  border:1px solid rgba(255,255,255,.16); border-radius:6px;
-  background: radial-gradient(ellipse at 72% 42%, rgba(213,255,63,.10), transparent 23%),
-  radial-gradient(ellipse at 72% 42%, rgba(100,125,255,.16), transparent 42%),
-  linear-gradient(135deg,#151820,#08090c 67%);}
-.home-hero:before {content:""; position:absolute; z-index:-1; width:min(54vw,700px); aspect-ratio:1; right:-3%; top:-22%;
-  border:1px solid rgba(213,255,63,.34); border-radius:45% 55% 60% 40%;
-  box-shadow:0 0 0 22px rgba(213,255,63,.025),0 0 0 52px rgba(213,255,63,.025); transform:rotate(-22deg);}
-.home-hero:after {content:""; position:absolute; z-index:-1; width:min(38vw,490px); aspect-ratio:1; right:9%; top:0%;
-  border:1px solid rgba(145,165,255,.32); border-radius:50% 48% 42% 58%;}
-.home-topline {display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;color:#c2c5ce;
-  font-family:'DM Mono',monospace;font-size:.72rem;letter-spacing:.11em;text-transform:uppercase;}
-.home-title {font-size:clamp(3.4rem,7.8vw,7.2rem);font-weight:800;line-height:.94;letter-spacing:-.085em;
-  margin:0 0 1.5rem;color:#f6f6f2;}
-.home-title span {color:#d5ff3f;}
-.home-subtitle {max-width:680px;color:#b9bdc7;font-size:clamp(1rem,1.5vw,1.18rem);line-height:1.7;}
-.home-bottom {display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,.16);
-  padding-top:1.1rem;color:#a4a8b2;font-family:'DM Mono',monospace;font-size:.72rem;letter-spacing:.05em;text-transform:uppercase;}
-.home-cta {max-width:720px;margin:1.4rem auto .3rem;text-align:center;width:100%;}
-.home-caption {color:#9da5b5;font-family:'DM Mono',monospace;font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.8rem;}
-.workspace-header {max-width:900px;margin:4vh auto 2.4rem;text-align:center;}
-.workspace-header h1 {font-size:clamp(2rem,4vw,3rem);letter-spacing:-.055em;margin-bottom:.5rem;}
-.workspace-header p {color:#a8acb6;font-size:1rem;}
-.workspace-content {max-width:1000px;margin:0 auto;width:100%;}
-.workspace-toolbar {display:flex;justify-content:flex-end;margin-bottom:1rem;}
-[data-testid="stFileUploader"] {border:0!important;background:transparent!important;padding:0!important;}
-[data-testid="stFileUploader"] section {border:1px dashed rgba(255,255,255,.2)!important;border-radius:16px!important;background:#111214!important;padding:1rem!important;}
-[data-testid="stFileUploader"] small {color:#9da2ad!important;}
-.stButton>button {border-radius:999px;border:1px solid rgba(255,255,255,.16);background:#17191d;color:#f4f4f5;padding:.55rem 1rem;}
-.stButton>button:hover {border-color:rgba(213,255,63,.6);background:#202226;color:#fff;}
-[data-testid="stChatInput"] {border:1px solid #35363a!important;border-radius:28px!important;background:#202123!important;}
-[data-testid="stChatInput"] textarea {color:#f4f4f5!important;}
-[data-testid="stChatMessage"] {background:transparent;border:0;padding:.65rem .4rem;}
-[data-testid="stExpander"] {border:1px solid #292a2d;border-radius:12px;background:#0c0d0f;}
-[data-testid="stAlert"] {border-radius:12px;}
-.prompt-chip {padding:.9rem 1rem;border:1px solid #292a2d;border-radius:14px;background:#101113;color:#e9e9eb;min-height:78px;}
-.prompt-chip strong {display:block;margin-bottom:.35rem;font-weight:600;}
-.prompt-chip span {font-size:.88rem;color:#a5a8b0;}
-@media(max-width:700px){.block-container{padding:1rem .8rem 2rem}.home-hero{min-height:72vh}.home-title{font-size:clamp(2.7rem,13vw,4.5rem)}.home-bottom{font-size:.62rem}.home-hero:before{width:90vw;right:-30%;top:4%}.home-hero:after{width:58vw;right:-5%;top:16%}}
-</style>
-""", unsafe_allow_html=True)
+with st.sidebar:
+    st.markdown('<div style="display:flex;gap:12px;align-items:center;margin-bottom:8px"><div class="brand-mark">S</div><div><div style="font-weight:750;font-size:1rem">Studyspace AI</div><div style="font-size:.75rem;color:#9298a5">PDF learning workspace</div></div></div>', unsafe_allow_html=True)
+    st.divider()
+    st.markdown('<div class="eyebrow">Your library</div>', unsafe_allow_html=True)
+    uploaded_files = st.file_uploader("Add PDF documents", type=["pdf"], accept_multiple_files=True, help="Upload one or more PDFs. Scanned pages are processed with OCR.")
+    st.caption("Files are processed locally by your app. Ollama generates answers on your machine.")
+    st.divider()
+    st.markdown('<div class="eyebrow">Session</div>', unsafe_allow_html=True)
+    if st.button("＋  New study session", use_container_width=True):
+        st.session_state.messages = []
+        st.session_state.pop("suggested_question", None)
+        st.rerun()
+    st.toggle("Show retrieved source passages", key="show_sources")
+    st.markdown('<div style="position:fixed;bottom:22px;color:#6f7480;font-size:.72rem;line-height:1.6">LOCAL AI · OLLAMA<br>MiniLM embeddings · FAISS search</div>', unsafe_allow_html=True)
 
-if st.session_state["current_view"] == "home":
-    st.markdown("""
-    <div class="home-hero">
-      <div class="home-topline"><span>✳ YOUR STUDY SPACE</span><span><span style="color:#d5ff3f">●</span> LOCAL AI ONLINE</span></div>
-      <div>
-        <div class="home-title">Read less.<br>Understand <span>more.</span></div>
-        <div class="home-subtitle">A personal AI study space that turns static PDFs into clear, explainable knowledge —<br> powered by local models and grounded in your pages.</div>
-      </div>
-      <div class="home-bottom"><span>YOUR MATERIALS · YOUR LEARNING · YOUR PACE</span><span>YOUR NEXT CHAPTER STARTS HERE</span></div>
-    </div>
-    <div class="home-cta"><div class="home-caption">YOUR DOCUMENTS. YOUR AI. YOUR PACE.</div></div>
-    """, unsafe_allow_html=True)
-    cta_col = st.columns([1, 2, 1])[1]
-    with cta_col:
-        if st.button("Enter study workspace →", key="enter_workspace", use_container_width=True):
-            st.session_state["current_view"] = "workspace"
-            st.rerun()
-    st.markdown("<div style='text-align:center;color:#737b8b;font-family:monospace;font-size:.68rem;letter-spacing:.08em;margin-top:1rem'>PRIVATE BY DESIGN · POWERED BY LOCAL AI · GROUNDED IN YOUR PDFs</div>", unsafe_allow_html=True)
+st.markdown('<div class="hero"><div class="eyebrow">Your personal study assistant</div><h1>Turn your PDFs into<br>understanding.</h1><p>Ask questions, build revision notes, and explore difficult concepts. Answers are grounded in passages retrieved from your documents.</p></div>', unsafe_allow_html=True)
 
-else:
-    top_left, top_right = st.columns([5, 1])
-    with top_left:
-        st.markdown("<div style='color:#d5ff3f;font:500 .75rem monospace;letter-spacing:.12em;text-transform:uppercase;margin-top:.6rem'>✳ Your study space</div>", unsafe_allow_html=True)
-    with top_right:
-        if st.button("← Home", key="back_home", use_container_width=True):
-            st.session_state["current_view"] = "home"
+if not uploaded_files and not all(k in st.session_state for k in ("pages", "chunks", "index")):
+    st.markdown('<div class="section-title">Start with your study material</div><div class="section-sub">Upload a PDF from the left sidebar to create your searchable study library.</div>', unsafe_allow_html=True)
+    c1,c2,c3=st.columns(3)
+    cards=[("01","Understand faster","Summarize a long document into clear, structured notes."),("02","Find exact context","Ask questions and get answers with filename and page citations."),("03","Prepare for exams","Generate key points, topic lists, and beginner-friendly explanations.")]
+    for col,(num,title,desc) in zip((c1,c2,c3),cards):
+        with col: st.markdown(f'<div class="stat" style="height:145px"><div class="eyebrow">{num}</div><div style="font-weight:700;margin:.65rem 0 .35rem">{title}</div><div style="font-size:.85rem;line-height:1.6;color:#9ca2ae">{desc}</div></div>',unsafe_allow_html=True)
+    st.stop()
+
+if not uploaded_files:
+    # Do not keep a previous document index after the user removes all uploads.
+    for key in ("signature", "pages", "chunks", "index"):
+        st.session_state.pop(key, None)
+
+if uploaded_files:
+    signature=tuple((f.name,f.size,hashlib.sha256(f.getvalue()).hexdigest()) for f in uploaded_files)
+    if st.session_state.get("signature") != signature:
+        try:
+            with st.spinner("Reading PDFs and building your search index…"):
+                pages=[]
+                for file in uploaded_files: pages.extend(extract_pdf(file))
+                chunks=make_chunks(pages)
+                if not chunks:
+                    st.error("No readable text was extracted. Check the PDF or confirm Tesseract OCR is installed for scanned documents.")
+                    st.stop()
+                embedder=load_embedding_model()
+                index=build_search_index(chunks,embedder)
+                st.session_state.update(pages=pages,chunks=chunks,index=index,signature=signature,messages=[])
+        except Exception as error:
+            st.error("The PDF library could not be prepared.")
+            st.exception(error)
+            st.stop()
+
+pages=st.session_state.get("pages",[])
+chunks=st.session_state.get("chunks",[])
+index=st.session_state.get("index")
+if not pages or not chunks or index is None:
+    st.info("Upload a PDF using the sidebar to get started.")
+    st.stop()
+
+embedder=load_embedding_model()
+ocr_pages=sum(bool(p.get("ocr_used")) for p in pages)
+files_count=len(set(p["source"] for p in pages))
+stat_cols=st.columns(3)
+for col,label,value in zip(stat_cols,("Documents indexed","Readable pages","Search passages"),(files_count,len(pages),len(chunks))):
+    with col: st.markdown(f'<div class="stat"><div class="stat-label">{label}</div><div class="stat-value">{value}</div></div>',unsafe_allow_html=True)
+st.caption(f"Index ready · OCR applied to {ocr_pages} page(s) · Model: {LLM_MODEL}")
+
+with st.expander("Browse indexed documents and extracted text"):
+    for page in pages:
+        with st.expander(f"{page['source']} · Page {page['page']}" + (" · OCR" if page.get("ocr_used") else "")):
+            st.write(page["text"][:3000])
+
+st.markdown('<div class="section-title">Study chat</div><div class="section-sub">Choose a starter prompt or ask your own question below.</div>',unsafe_allow_html=True)
+quick_prompts=[("Summarize documents","Summarize the uploaded documents"),("List key topics","List all major topics and subtopics"),("Exam revision points","List the most important points for exam revision"),("Explain simply","Explain the main concepts in simple beginner-friendly language")]
+qcols=st.columns(4)
+for col,(label,prompt) in zip(qcols,quick_prompts):
+    with col:
+        if st.button(label,use_container_width=True,key="starter_"+label):
+            st.session_state["suggested_question"]=prompt
             st.rerun()
 
-    st.markdown("<div class='workspace-header'><h1>Where should we begin?</h1><p>Upload your study material and ask anything about it.</p></div>", unsafe_allow_html=True)
-    st.markdown("<div class='workspace-content'>", unsafe_allow_html=True)
-    uploaded_files = st.file_uploader(
-        "Add study materials",
-        type=["pdf"],
-        accept_multiple_files=True,
-        help="Upload text-based or scanned English PDFs.",
-        label_visibility="collapsed"
-    )
+if st.session_state.messages:
+    export_text="# AI PDF Study Assistant — Study Session\n\n"
+    for msg in st.session_state.messages:
+        export_text += ("## You\n\n" if msg["role"]=="user" else "## Study Assistant\n\n")+msg["content"]+"\n\n---\n\n"
+    with st.expander("Export your study notes"):
+        st.download_button("Download conversation as Markdown",data=export_text,file_name="study_session_notes.md",mime="text/markdown")
 
-    if uploaded_files:
-        signature = tuple((file.name, file.size, hashlib.sha256(file.getvalue()).hexdigest()) for file in uploaded_files)
-        if st.session_state.get("signature") != signature:
-            try:
-                with st.spinner("Preparing your study materials…"):
-                    pages = []
-                    for file in uploaded_files:
-                        pages.extend(extract_pdf(file))
-                    chunks = make_chunks(pages)
-                    if not chunks:
-                        st.error("No readable text could be extracted. Check that the PDF is valid and scanned pages are clear.")
-                        st.stop()
-                    embedder = load_embedding_model()
-                    index = build_search_index(chunks, embedder)
-                    st.session_state["pages"] = pages
-                    st.session_state["chunks"] = chunks
-                    st.session_state["index"] = index
-                    st.session_state["signature"] = signature
-                    st.session_state["messages"] = []
-            except Exception as error:
-                st.error(f"Could not process the PDF: {error}")
-                st.stop()
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+        if message["role"] == "assistant" and st.session_state.show_sources and message.get("sources"):
+            with st.expander("Sources used for this answer"):
+                for item in message["sources"]:
+                    st.markdown(f"**{item['source']} · Page {item['page']}**  \nSimilarity: `{item['score']:.3f}`")
+                    st.write(item["text"])
+                    st.divider()
 
-        pages = st.session_state["pages"]
-        chunks = st.session_state["chunks"]
-        index = st.session_state["index"]
-        embedder = load_embedding_model()
-        st.caption(f"{len(uploaded_files)} PDF(s) · {len(pages)} readable pages · OCR automatically used for scanned pages when needed")
-        with st.expander("View extracted pages"):
-            for page in pages:
-                st.markdown(f"**{page['source']} · page {page['page']}**")
-                st.text(page["text"][:1200])
-                st.divider()
-
-        if not st.session_state.get("messages"):
-            prompt_cols = st.columns(3)
-            suggestions = [
-                ("Summarize my notes", "Give me a clear overview of the uploaded PDFs."),
-                ("Explain a concept", "Explain the main concepts in my PDFs step by step."),
-                ("Prepare for exams", "List the important topics and exam revision points.")
-            ]
-            for col, (label, prompt) in zip(prompt_cols, suggestions):
-                with col:
-                    if st.button(label, key=f"suggest_{label}", use_container_width=True):
-                        st.session_state["pending_question"] = prompt
-                        st.rerun()
-
-        for message in st.session_state.get("messages", []):
-            with st.chat_message(message["role"]):
-                st.markdown(message["content"])
-
-        question = st.chat_input("Ask anything about your PDFs…")
-        if not question and st.session_state.get("pending_question"):
-            question = st.session_state.pop("pending_question")
-
-        if question:
-            st.session_state["messages"].append({"role": "user", "content": question})
-            with st.chat_message("user"):
-                st.markdown(question)
-            with st.chat_message("assistant"):
-                try:
-                    intent = detect_intent(question)
-                    with st.spinner("Thinking…"):
-                        if intent in ("document_summary", "list_topics", "key_points"):
-                            answer = get_document_overview(pages, intent)
-                            results = []
+question=st.chat_input("Ask a question about your PDFs…")
+if not question:
+    question=st.session_state.pop("suggested_question",None)
+if question:
+    st.session_state.messages.append({"role":"user","content":question})
+    with st.chat_message("user"): st.markdown(question)
+    with st.chat_message("assistant"):
+        try:
+            intent=detect_intent(question)
+            with st.spinner("Searching your PDFs and preparing an answer…"):
+                if intent in ("document_summary","list_topics","key_points"):
+                    answer=get_document_overview(pages,intent)
+                    results=[]
+                else:
+                    if intent == "page_specific":
+                        import re
+                        match = re.search(r"page\s+(\d+)", question.lower())
+                        target_page = int(match.group(1)) if match else None
+                        page_chunks = [c for c in chunks if target_page is not None and c["page"] == target_page]
+                        if page_chunks:
+                            page_index = build_search_index(page_chunks, embedder)
+                            results = search_chunks(question, page_chunks, page_index, embedder, top_k=6)
                         else:
-                            results = search_chunks(question, chunks, index, embedder, top_k=6 if intent == "page_specific" else 5)
-                            answer = answer_question(question, results)
-                    st.markdown(answer)
-                    if results:
-                        with st.expander("Sources from your PDFs"):
-                            for item in results:
-                                st.markdown(f"**{item['source']} · page {item['page']}**")
-                                st.write(item["text"])
-                                st.divider()
-                    st.session_state["messages"].append({"role": "assistant", "content": answer})
-                except Exception as error:
-                    st.error(f"Could not generate the answer. Check that Ollama is running and '{LLM_MODEL}' is installed.")
-                    st.code(str(error))
-    else:
-        st.markdown("<div style='text-align:center;color:#777d89;font-size:.88rem;margin:1.2rem 0 1.5rem'>Your PDFs stay on your computer. Start by adding one or more files above.</div>", unsafe_allow_html=True)
-        prompt_cols = st.columns(3)
-        for col, title, desc in zip(prompt_cols,
-            ["Summarize notes", "Explain a concept", "Prepare for exams"],
-            ["Turn long PDFs into a clear overview.", "Understand difficult topics step by step.", "Find key topics and revision points."]):
-            with col:
-                st.markdown(f"<div class='prompt-chip'><strong>{title}</strong><span>{desc}</span></div>", unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
+                            results = search_chunks(question, chunks, index, embedder, top_k=5)
+                    else:
+                        results=search_chunks(question,chunks,index,embedder,top_k=5)
+                    answer=answer_question(question,results)
+            st.markdown(answer)
+            if results and st.session_state.show_sources:
+                with st.expander("Sources used for this answer"):
+                    for item in results:
+                        st.markdown(f"**{item['source']} · Page {item['page']}**  \nSimilarity: `{item['score']:.3f}`")
+                        st.write(item["text"])
+                        st.divider()
+            st.session_state.messages.append({"role":"assistant","content":answer,"sources":results if results else []})
+        except Exception as error:
+            st.error(f"Could not generate the answer. Confirm Ollama is running and `{LLM_MODEL}` is installed.")
+            with st.expander("Technical details"):
+                st.code(f"{type(error).__name__}: {error}")
+
